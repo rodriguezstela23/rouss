@@ -1,5 +1,11 @@
-﻿require("dotenv").config();
+require("dotenv").config();
 const { google } = require("googleapis");
+
+// Función para generar un retraso aleatorio sin necesidad de `sleep()`
+function delay() {
+  const delayTime = Math.floor(Math.random() * (9000 - 1000 + 1)) + 1000; // Aleatorio entre 1000ms (1s) y 10000ms (10s)
+  return new Promise(resolve => setTimeout(resolve, delayTime)); // Devuelve una promesa que se resuelve después del delay
+}
 
 exports.handler = async (event) => {
   try {
@@ -21,6 +27,9 @@ exports.handler = async (event) => {
     const gmailProfile = await gmail.users.getProfile({ userId: "me" });
     console.log("🔍 Buscando correos en la cuenta:", gmailProfile.data.emailAddress);
 
+    // Retraso aleatorio antes de obtener los mensajes
+    await delay();  // Pausa de entre 1 y 10 segundos
+
     const response = await gmail.users.messages.list({
       userId: "me",
       maxResults: 10, // Buscar hasta 10 correos
@@ -35,13 +44,7 @@ exports.handler = async (event) => {
     // 🔹 Filtrar correos por asunto
     const validSubjects = [
       "Importante: Cómo actualizar tu Hogar con Netflix",
-      "Importante: Como actualizar tu Hogar con Netflix",
       "Tu código de acceso temporal de Netflix",
-      "Tu codigo de acceso temporal de Netflix",
-      "Completa tu solicitud de restablecimiento de contraseña",
-      "actualizar tu Hogar con Netflix",
-      "acceso temporal de Netflix",
-      "solicitud de restablecimiento de contraseña",
       "Completa tu solicitud de restablecimiento de contraseña"
     ];
 
@@ -51,6 +54,7 @@ exports.handler = async (event) => {
       "https://www.netflix.com/account/update-primary-location?nftoken="
     ];
 
+    // Procesar cada mensaje encontrado
     for (let msg of response.data.messages) {
       const message = await gmail.users.messages.get({ userId: "me", id: msg.id });
       const headers = message.data.payload.headers;
@@ -70,7 +74,7 @@ exports.handler = async (event) => {
         toHeader &&
         toHeader.value.toLowerCase().includes(email.toLowerCase()) &&
         validSubjects.some(subject => subjectHeader.value.includes(subject)) &&
-        (now - timestamp) <= 13 * 60 * 1000 // Aumentar a 10 minutos para pruebas
+        (now - timestamp) <= 10 * 60 * 1000 // Aumentar a 10 minutos para pruebas
       ) {
         const body = getMessageBody(message.data);
         const link = extractLink(body, validLinks);
@@ -80,7 +84,7 @@ exports.handler = async (event) => {
       }
     }
 
-    return { statusCode: 404, body: JSON.stringify({ message: "No se ha encontra un resultado para tu cuenta, vuelve a intentar nuevamente" }) };
+    return { statusCode: 404, body: JSON.stringify({ message: "No se ha encuentra un resultado para tu cuenta, vuelve a intentar nuevamente" }) };
   } catch (error) {
     return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
   }
